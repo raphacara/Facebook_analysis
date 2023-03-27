@@ -1,0 +1,574 @@
+---
+title: "Projet Datascience"
+output: html_document
+date: "2023-01-16"
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(naniar)
+library(plyr)
+library(dplyr)
+library(plotly)
+library(skimr)
+library(FactoMineR)
+library(factoextra)
+library(broom)
+```
+
+```{r}
+Live_20210128
+```
+
+2 Analyse des données 2.1 Le jeu de données
+Le jeu de données Live contient des statistiques sur les publications dans les pages Facebook de 10 détaillants thaïlandais de mode et de cosmétiques de mars 2012 à juin 2018. Chaque observation (ligne) représente une publication de nature différente (vidéo, photo, statut ou lien). Les caractéristiques (colonnes) sont des variables décrivant chaque article :
+— status_type : type de publication : lien, photo, statut ou vidéo.
+— status_published : date et heure de la publication.
+— num_reactions, num_comments, num_shares sont le nombre de réactions, de commentaires et de partages. — num_likes, num_loves, num_wows, num_hahas, num_sads et num_angrys sont des réactions emoji.
+2.2 Analyse préliminaire : statistiques descriptives
+Importez le fichier de données Live 20210128.csv. Familiarisez-vous avec les données et répondez aux questions :
+1. [question graduée] Combien y a-t-il d'observations ? Combien de variable ?
+
+```{r}
+glimpse(Live_20210128)
+```
+
+2. [question notée] Y a-t-il des valeurs manquantes dans l'ensemble de données ? Si vous le jugez approprié, supprimez les variables concernant les valeurs manquantes.
+```{r}
+sum(is.na(Live_20210128)) # Nombre de valeurs manquantes dans l'ensemble de données
+sapply(Live_20210128, function(Live_20210128) sum(is.na(Live_20210128))) # Visualuser dans chaque variable le nombre de données manquante
+```
+Les colonnes column1, column 2, column3 column4 sont des colonnes vides car nous avons au total 7050 contenant des données manquantes. Nous pouvons donc les supprimer.
+
+Création d'un dataset sans les colonnes contenant des données manquantes : 
+```{r}
+data <- Live_20210128[, -c(13:16)] # on supprime les dernières colonnes contenant les données manquantes
+data # on visualise le data
+```
+
+
+3. [question notée] Calculez des statistiques descriptives pour toutes les variables sauf status_type et status_published. Vous pouvez utiliser des graphiques de votre choix pour vous aider à décrire les données (boxplot, nuage de points, etc.). Interprétez les résultats.
+
+```{r}
+ls(data)# nous affiche toute les variables de notre data
+```
+
+L'analyse univariée permet de mettre en avant la répartion de nos différentes variables :
+
+```{r}
+f<-skim(data)
+f# cette fonction permet de categoriser nos variable en character ou en numérique et d'effectuer une analayse sur nos variable 
+```
+
+Visualisation : 
+
+```{r}
+data%>%
+  select(status_id, num_reactions, num_comments, num_shares, num_likes, num_loves, num_wows, num_hahas, num_sads, num_angrys)%>%
+  boxplot(xlab= "Les variables", ylab="Statistiques", main="Statistique descriptive des variables", col="red", lwd=0.5, lty=1)
+
+ggplot(data) + geom_boxplot(aes(y=num_reactions), fill="wheat",color="tomato4") +theme_classic() + labs(title="Boxplot du nombre de réaction",x="Nombre de réaction")
+
+ggplot(data) + geom_boxplot(aes(y=num_comments), fill="wheat",color="tomato4") +theme_classic() + labs(title="Boxplot du nombre de commentaire",x="Nombre de commentaire")
+
+ggplot(data) + geom_boxplot(aes(y=num_shares), fill="wheat",color="tomato4") +theme_classic() + labs(title="Boxplot du nombre de partage",x="Nombre de partage", y = "Status des Id")
+
+ggplot(data) + geom_boxplot(aes(y=num_likes), fill="wheat",color="tomato4") +theme_classic() + labs(title="Boxplot du nombre de likes",x="Nombre de likes")
+
+ggplot(data) + geom_boxplot(aes(y=num_loves), fill="wheat",color="tomato4") +theme_classic() + labs(title="Boxplot du nombre de j'adore",x="Nombre de j'adore")
+
+ggplot(data) + geom_boxplot(aes(y=num_wows), fill="wheat",color="tomato4") +theme_classic() + labs(title="Boxplot du nombre de Wows",x="Nombre de Wows")
+
+ggplot(data) + geom_boxplot(aes(y=num_hahas), fill="wheat",color="tomato4") +theme_classic() + labs(title="Boxplot du nombre d'émoji drôle",x="Nombre d'émoji drôle")
+
+ggplot(data) + geom_boxplot(aes(y=num_sads), fill="wheat",color="tomato4") +theme_classic() + labs(title="Boxplot du nombre d'émoji triste",x="Nombre d'émoji triste")
+
+ggplot(data) + geom_boxplot(aes(y=num_angrys), fill="wheat",color="tomato4") +theme_classic() + labs(title="Boxplot du nombre d'émoji énervé",x="Nombre d'émoji énervé")
+```
+
+```{r}
+data%>%
+  group_by(status_type)%>%
+  ggplot() + geom_boxplot(aes(x=status_type, y=num_loves, color= status_type), width=0.8) + theme_classic() + labs(title="Boxplot du nombre de j'adore",x="Type de status", y="Nombre de j'adore")
+
+data%>%
+  group_by(status_type)%>%
+  ggplot() + geom_boxplot(aes(x=status_type, y=num_reactions, color= status_type), width=0.8) + theme_classic() + labs(title="Boxplot du nombre de réactions",x="Type de status", y="Nombre de réactions")
+
+data%>%
+  group_by(status_type)%>%
+  ggplot() + geom_boxplot(aes(x=status_type, y=num_comments, color= status_type), width=0.8) + theme_classic() + labs(title="Boxplot du nombre de commentaire",x="Type de status", y="Nombre de commentaire")
+
+data%>%
+  group_by(status_type)%>%
+  ggplot() + geom_boxplot(aes(x=status_type, y=num_shares, color= status_type), width=0.8) + theme_classic() + labs(title="Boxplot du nombre de partage",x="Type de status", y="Nombre de partage")
+
+data%>%
+  group_by(status_type)%>%
+  ggplot() + geom_boxplot(aes(x=status_type, y=num_wows, color= status_type), width=0.8) + theme_classic() + labs(title="Boxplot du nombre de Wows",x="Type de status", y="Nombre de Wows")
+
+data%>%
+  group_by(status_type)%>%
+  ggplot() + geom_boxplot(aes(x=status_type, y=num_hahas, color= status_type), width=0.8) + theme_classic() + labs(title="Boxplot du nombre d'émoji drôle",x="Type de status", y="Nombre d'émoji drôle")
+
+data%>%
+  group_by(status_type)%>%
+  ggplot() + geom_boxplot(aes(x=status_type, y=num_sads, color= status_type), width=0.8) + theme_classic() + labs(title="Boxplot du nombre d'émoji triste",x="Type de status", y="Nombre d'émoji triste")
+data%>%
+  group_by(status_type)%>%
+  ggplot() + geom_boxplot(aes(x=status_type, y=num_angrys, color= status_type), width=0.8) + theme_classic() + labs(title="Boxplot du nombre d'émoji énervé",x="Type de status", y="Nombre d'émoji énervé")
+
+```
+
+
+```{r}
+plot_ly( data = data,
+         x = ~num_reactions,
+         type = 'histogram',
+         marker = list(color = 'rgb(219,112,147)'),
+         width = 1)%>% 
+layout( xaxis = list(title = "Histogram du nombre de réaction"), yaxis = list(title ="Effectif"), title = "Nombre de réaction par publication") 
+
+plot_ly( data = data,
+         x = ~num_comments,
+         type = 'histogram',
+         marker = list(color = 'rgb(219,112,147)'),
+         width = 1)%>% 
+layout( xaxis = list(title = "Histogram du nombre de commentaire"), yaxis = list(title ="Effectif"), title = "Nombre de commentaires par publication") 
+
+plot_ly( data = data,
+         x = ~num_shares,
+         type = 'histogram',
+         marker = list(color = 'rgb(219,112,147)'),
+         width = 1)%>% 
+layout( xaxis = list(title = "Histogram du nombre de partages"), yaxis = list(title ="Effectif"), title = "Nombre de partages par publication") 
+
+plot_ly( data = data,
+         x = ~num_likes,
+         type = 'histogram',
+         marker = list(color = 'rgb(219,112,147)'),
+         width = 1)%>% 
+layout( xaxis = list(title = "Histogram du nombre de likes"), yaxis = list(title ="Effectif"), title = "Nombre de likes par publication") 
+
+plot_ly( data = data,
+         x = ~num_loves,
+         type = 'histogram',
+         marker = list(color = 'rgb(219,112,147)'),
+         width = 1)%>% 
+layout( xaxis = list(title = "Histogram du nombre de j'adore"), yaxis = list(title ="Effectif"), title = "Nombre de j'adores par publication") 
+
+plot_ly( data = data,
+         x = ~num_wows,
+         type = 'histogram',
+         marker = list(color = 'rgb(219,112,147)'),
+         width = 1)%>% 
+layout( xaxis = list(title = "Histogram du nombre de wows"), yaxis = list(title ="Effectif"), title = "Nombre de wows par publication") 
+
+plot_ly( data = data,
+         x = ~num_hahas,
+         type = 'histogram',
+         marker = list(color = 'rgb(219,112,147)'),
+         width = 1)%>% 
+layout( xaxis = list(title = "Histogram du nombre d'émoji drôle"), yaxis = list(title ="Effectif"), title = "Nombre d'émoji drôle par publication") 
+
+plot_ly( data = data,
+         x = ~num_sads,
+         type = 'histogram',
+         marker = list(color = 'rgb(219,112,147)'),
+         width = 1)%>% 
+layout( xaxis = list(title = "Histogram du nombre d'émoji triste"), yaxis = list(title ="Effectif"), title = "Nombre d'émoji triste par publication") 
+
+plot_ly( data = data,
+         x = ~num_angrys,
+         type = 'histogram',
+         marker = list(color = 'rgb(219,112,147)'),
+         width = 1)%>% 
+layout( xaxis = list(title = "Histogram du nombre d'émoji énervé"), yaxis = list(title ="Effectif"), title = "Nombre d'émoji énervé par publication") 
+```
+
+
+2.3 Analyse en composantes principales (ACP)
+Question théorique
+1. [question graduée] Si deux variables sont parfaitement corrélées dans l'ensemble de données, serait-il approprié de les inclure toutes les deux dans l'analyse lors de la réalisation de l'ACP ? Justifiez votre réponse.
+
+ Non, ce ne serait pas approprié. Si deux variables sont parfaitement corrélées, cela signifie qu'elles contiennent les mêmes informations et qu'elles sont donc redondantes. Inclure les deux variables dans l'analyse de l'ACP ne ferait que ralentir le processus et ne fournirait pas d'informations supplémentaires
+ 
+2. [question graduée] En revanche, que se passe-t-il si les variables ne sont absolument pas corrélées ?
+
+Si les variables ne sont pas corrélées, elles peuvent être incluses dans l'analyse de l'ACP. Cela peut être utile pour comprendre comment les variables sont liées et comment elles peuvent être utilisées pour expliquer des phénomènes.
+
+Application pratique : Vous allez maintenant effectuer une ACP en utilisant uniquement les variables num_comments,
+num_shares, num_likes et num_loves. Pour l'ACP, vous ne considérerez que ces quatre caractéristiques.
+
+Il y a deux commandes à choix pour faire l'ACP en R (j'expliquerai plus tard pourquoi) : prcomp et princomp. Ici je vais utiliser prcomp ; avec princomp le résultat est presque le même, et l'utilisation est identique aux noms des attributs près.
+Les composantes principales (PCx, pour "Principal Component") sont les colonnes de pca$rotation :
+```{r}
+```
+
+
+1. [question notée] Calculez la variance de chaque variable et interprétez les résultats. Penses-tu
+il est nécessaire de standardiser les variables avant d'effectuer l'ACP pour ce jeu de données ? Pourquoi ?
+
+```{r}
+var(data$num_comments)
+var(data$num_shares)
+var(data$num_likes)
+var(data$num_loves)
+```
+
+La variance de chaque paramètre est donc 
+
+La standardisation consiste à centrer et à réduire les données, ce qui signifie que les données sont transformées de sorte que la moyenne soit égale à zéro et que la variance soit égale à un. Cela permet de réduire l'influence
+
+2. [Question notée] Effectuez l'ACP en utilisant la fonction appropriée avec les arguments et les options appropriés en tenant compte de votre réponse à la question précédente. Analysez la sortie de la fonction. Interprétez les valeurs des deux premiers vecteurs de chargement des composantes principales.
+
+```{r}
+data%>%
+  select(num_comments,num_shares, num_likes, num_loves)%>%
+  scale()%>% # centrer reduire les données
+  prcomp() -> acp
+acp$rotation
+```
+
+On voit par exemple que l'axe "PC1" est une combinaison de -0.99 x num_comments, -0.09 x de num_shares et -0.06 x num_likes et -0.02 x num_Loves, c'est-à-dire que la direction de la PC1 est quasi perpendiculaire à celle de nos variables.  On appelle aussi ces nombres "loadings".
+
+3. [question notée] Calculez le pourcentage de variance expliquée (PVE) par chaque composante ? Tracez le PVE expliqué par chaque composant, ainsi que le PVE cumulé. Combien de composants garderiez-vous ? Pourquoi ?
+
+La fonction récapitulative sur l'objet résultat nous donne l'écart type, la proportion de variance expliquée par chaque composante principale et la proportion cumulative de variance expliquée.
+```{r}
+summary(acp)
+```
+
+PVE expliqué par chaque composant : 
+```{r}
+library(tidyr)
+library(tidyverse)
+acp %>%
+  tidy("pcs")%>%
+  ggplot(aes(x=PC, y=percent))+
+  geom_col(fill="lightblue", alpha=0.7) +
+  geom_point(size=2) +
+  geom_line(color="blue", size=1.2)+
+  scale_y_continuous(labels=scales::label_percent(),
+                     breaks = scales::breaks_pretty(n=6))+
+  labs(y= "Variance explained",
+       title="Scree plot") + theme_classic()
+```
+
+La bonne nouvelle est que si les deux ou trois premiers PC ont capturé la plupart des informations, alors nous pouvons ignorer le reste sans rien perdre d'important. Un graphique scree montre la quantité de variation que chaque PC capture à partir des données. L'axe des y sont des valeurs propres, qui représentent essentiellement la quantité de variation. Plus le PVE est élevé, plus la composante principale explique une grande partie de la variabilité des données.
+
+PVE cumulé : 
+```{r}
+acp %>%
+  tidy("pcs") %>%
+  ggplot(aes(x=PC, y=cumulative))+
+  geom_line(color="lightblue", size=2)+
+  geom_point(color= "red", size=3) +
+  scale_y_continuous(labels=scales::label_percent(),
+                     breaks = scales::breaks_pretty(n=6))+ theme_minimal() +
+  labs(y= "Cumulative Variance explained",
+       title="Scree plot")
+```
+
+Ainsi si on garde seulement les deux premières, on a la projection des points dans le plan PC1-PC2 et on peut en faire un graphique qu'on appelle "biplot" :
+
+4. [Question notée] Utilisez un biplot avec un cercle de corrélation pour afficher à la fois les scores des composantes principales et les vecteurs de chargement dans un seul tracé. Interprétez les résultats.
+
+
+```{r}
+biplot(acp)
+```
+
+Résultat : 
+
+Une méthode simple pour extraire les résultats, pour les variables, à partir de l’ACP est d’utiliser la fonction get_pca_var() [package factoextra]. Cette fonction retourne une liste d’éléments contenant tous les résultats pour les variables actives (coordonnées, corrélation entre variables et les axes, cosinus-carré et contributions)
+```{r}
+var <- get_pca_var(acp)
+```
+
+Les variables hautement corrélées pointent dans des directions similaires ; les variables non corrélées sont presque perpendiculaires les unes aux autres.
+Les points qui sont proches les uns des autres dans le biplot représentent des observations avec des valeurs similaires.
+
+Birplot selon les différentes status des postes : 
+```{r}
+fviz_pca_biplot(acp, geom.ind = "point", 
+                pointshape= 20,
+                pointsize=2,# Montre les points seulement (mais pas le "text")
+             col.ind = data$status_type, # colorer by groups
+             palette = "jco",
+             addEllipses = TRUE,
+             col.var= "black",
+             label= "var",
+             repel= TRUE,
+             legend.title = "Type de statuts")
+```
+
+Cercle de corrélation : 
+
+La corrélation entre une variable et une composante principale (PC) est utilisée comme coordonnées de la variable sur la composante principale. La représentation des variables diffère de celle des observations: les observations sont représentées par leurs projections, mais les variables sont représentées par leurs corrélations (Abdi and Williams 2010).
+
+```{r}
+head(var$coord,4) # coordonnées des variables 
+fviz_pca_var(acp, col.var="cos2",gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),repel = TRUE )
+```
+
+Le graphique ci-dessus est également connu sous le nom de graphique de corrélation des variables. Il montre les relations entre toutes les variables. Il peut être interprété comme suit:
+
+Les variables positivement corrélées sont regroupées.
+Les variables négativement corrélées sont positionnées sur les côtés opposés de l’origine du graphique (quadrants opposés).
+La distance entre les variables et l’origine mesure la qualité de représentation des variables. Les variables qui sont loin de l’origine sont bien représentées par l’ACP.
+
+Visualisaiton via corrplot: 
+Les contributions des variables dans la définition d’un axe principal donné, sont exprimées en pourcentage.
+
+Les variables corrélées avec PC1 (i.e., Dim.1) et PC2 (i.e., Dim.2) sont les plus importantes pour expliquer la variabilité dans le jeu de données.
+Les variables qui ne sont pas en corrélation avec un axe ou qui sont corrélées avec les derniers axes sont des variables à faible apport et peuvent être supprimées pour simplifier l’analyse globale.
+La contribution des variables peut être extraite comme suit:
+
+```{r}
+head(var$contrib, 4)
+library("corrplot")
+corrplot(var$contrib, is.corr=FALSE)
+```
+
+
+Analyse sur tout le dataset : 
+
+
+```{r}
+# Fonction pareto
+pareto = function(x, bar.col="cyan", line.col="red", pch=16, h=80, h.lty=3,main="",xlab="Défauts",ylab="Fréquence (%)", names.arg=c(), ylab2="Cumul",mar=c(5,4,3,4)) {
+if (length(names.arg)>0) {names.arg=names.arg[order(x, decreasing = TRUE)]}
+x = sort(x,decreasing=T); x = x*100/sum(x);
+cumul = (cumsum(x)/sum(x))*100
+simulation = barplot(x,col=bar.col) ; simulation
+plot.new()
+par(mar=mar)
+barplot(x,col=bar.col,axes=F,ylim=c(0,100),main=main,xlab=xlab,ylab="",names.arg=names.arg)
+#par(new=TRUE)
+points(simulation,cumul,pch=pch,col=line.col,xlab="",ylab="",type="o")
+abline(h=h,lty=h.lty) ; box()
+axis(2) ; axis(4,c(0,20,40,60,80,100),col.axis=line.col,col=line.col)
+mtext(ylab,side=2,line=2,cex=1.2) ; mtext(ylab2,side=4,col="red",line=2,cex=1.2)
+result = c(x , cumul) ; result = matrix(result,nc=length(x), byrow=T)
+if (length(names.arg)>0) {colnames(result) = names.arg } 
+rownames(result) = c("frequency","cumul")
+return(result)}
+
+```
+
+
+```{r}
+data%>%
+  select(status_id, num_reactions, num_comments, num_shares, num_likes, num_loves, num_wows, num_hahas, num_sads, num_angrys)-> dat
+cp <- PCA(dat, scale.unit= T, ncp=5, graph=T)
+pareto(cp$eig[,2], h=95) # h = 95 : afficher un seuil de cumul de la variance à 95%
+eig <- get_eigenvalue(cp)
+eig
+```
+
+```{r}
+dat%>%
+  scale()%>%
+  prcomp() -> apc
+summary(apc)
+apc$rotation
+apc%>%
+  tidy("pcs")
+```
+
+Faisons un screeplot, un barplot, montrant le pourcentage de variance expliqué par chaque PC. Dans cet ensemble de données, nous avons quatre PC car il y a quatre colonnes de données.
+```{r}
+apc %>%
+  tidy("pcs") %>%
+  ggplot(aes(x=PC, y=percent))+
+  geom_col(fill="dodgerblue", alpha=0.7) +
+  scale_y_continuous(labels=scales::label_percent(),
+                     breaks = scales::breaks_pretty(n=6))+
+  labs(y= "Variance explained",
+       title="Scree plot")
+```
+
+Une autre variante du tracé de scree est le traçage de la variance cumulative expliquée par rapport aux PC en tant que ligne ou parcelle de points.
+
+```{r}
+apc %>%
+  tidy("pcs") %>%
+  ggplot(aes(x=PC, y=cumulative))+
+  geom_point(size=4) +
+  geom_line(color="red", size=2)+
+  scale_y_continuous(labels=scales::label_percent(),
+                     breaks = scales::breaks_pretty(n=6))+
+  labs(y= "Cumulative Variance explained",
+       title="Scree plot")
+```
+
+2.4 Régression linéaire
+
+[question graduée] 
+question théorique : Supposons que nous ajustions un modèle de régression linéaire pour expliquer Y comme une fonction linéaire de deux variables X1 et X2. Notons R2 le coefficient de détermination associé. Interpréter R2 Quelle est la plage de valeurs que peut prendre R2 ? Si nous notons r1 et r2 le coefficient de corrélation entre X1 et Y et le coefficient de corrélation entre X2 et Y respectivement. Quelle est la relation entre R2 et r1 et r2 ?
+
+ Le coefficient de détermination R2 est une mesure de la variabilité des données qui est expliquée par le modèle de régression linéaire. La valeur de R2 peut varier entre 0 et 1, où 0 signifie que le modèle ne peut pas expliquer la variabilité des données et 1 signifie que le modèle explique parfaitement la variabilité des données. 
+  La relation entre R2 et r1 et r2 est que R2 est égal à la somme des carrés des coefficients de corrélation entre X1 et Y et X2 et Y. Autrement dit, R2 = r1^2 + r2^2.
+
+Application pratique
+Il est bien connu que compte tenu d'une publication sur les réseaux sociaux, le nombre de réactions (j'aime, partages, commentaires, etc.) a un impact important sur la visibilité de la publication. Parmi toutes les réactions, celle que Facebook donne la priorité à apparaître sur le fil d'actualité d'un utilisateur est le partage. En effet, partager implique de reposter pour partager avec des amis et des followers. De plus, il est possible de partager une publication en laissant un commentaire. Dans cette partie, vous allez effectuer une régression linéaire en utilisant le nombre de partages num_shares comme variable cible en fonction des autres variables.
+
+
+[question graduée] Effectuez une première analyse de la variable num_shares basée sur les autres en calculant le coefficient de corrélation entre num_shares et chacune des autres variables sauf status_type, status_published et num_reactions. Lequel est le plus corrélé avec num_shares ?
+
+```{r}
+data%>%
+  select(num_shares, num_comments, num_likes, num_loves, num_hahas, num_wows, num_sads, num_angrys)%>%
+  cor()
+```
+Ici on a fait visualiser le coefficient de corrélaiton en fonciton de chaque varibale, on s'interesse à la correlation uniquement de la variable num_shares, on regarde donc uniquement la colonne correspondant. La variable ke plus correlé est num_loves avec un coefficient de correlation de 0.82, suivi de num_comments avec un coefficient de correaltion de 0.64.
+
+
+[question notée] Ajustez un modèle de régression linéaire simple en utilisant comme variable cible num_shares, notée Y , et comme variable caractéristique la variable la plus corrélée à celle-ci que vous avez identifiée dans la question précédente, notée X :
+Y = β0 + β1X + ε (1)
+
+Modèle de regression linéaire
+Évaluation visuelle de la linéarité : 
+La régression linéaire simple permet d’évaluer la significativité du lien linéaire entre deux variables. La forme linéaire entre le deux variables est donc pré-supposée. 
+D'après les résultats obtenu avec le coefficient de correlaiton, on visualise la relation entre la variable num_shares et num_loves 
+```{r}
+library(car)
+dat%>%
+  scale() -> d
+scatterplot(num_shares~num_loves, data=d)
+```
+
+La visulisation de la linéarité semble correcte entre les deux variables 
+
+Réalisation de la régression linéaire : 
+
+```{r}
+regression = lm(num_shares~ num_loves, data=data) #on definit la régression linéaire
+summary(regression) # on affiche les résultats et le coefficient, les significativé et le R2
+```
+
+1. Quelles sont les estimations des coefficients ? Interpréter l'estimation du coefficient βˆ1
+
+```{r}
+coef(regression) #extraction des coeffcients estimés 
+```
+ L'estimation du coefficient βˆ1 est la pente de la droite de régression et représente la relation entre la variable indépendante et la variable dépendante. Plus le coefficient βˆ1 est élevé, plus la variable indépendante a un effet important sur la variable dépendante.
+ Le coefficient βˆ1 dans l'équation de la droite de régression est 2.70. Cela signifie que pour chaque unité supplémentaire de num_loves, la variable dépendante augmente de 2.70 unités.
+ On a donc l'équation de la droite de régression : 5,66 + 2.70 num_loves.
+
+2. Donner l'expression générale d'un intervalle de confiance 1 − α pour le paramètre β1. Calculez l'intervalle de confiance à 95 % pour ce coefficient. Interprétez les résultats.
+
+```{r}
+confint(regression) #Intervalle de confiance (à 95%) des coefficients
+```
+
+L'intervalle de confiance à 95 % pour le coefficient βˆ1 est compris entre 2.655627 et 2.743627. Cela signifie que, avec une probabilité de 95 %, la valeur réelle du coefficient βˆ1 se trouve dans cet intervalle.
+L’intervalle de confiance à 95% de la pente est une étendue de valeurs qui a une probabilité de 95% de contenir la vraie pente
+
+3. Élaborer le test d'hypothèse de pente nulle pour le coefficient β1 et conclure s'il y a un impact du prédicteur sur le nombre d'actions. β1 est-il significativement non nul ?
+
+Le test d'hypothèse de pente nulle pour le coefficient β1 est définit comme suit : 
+HO : β1=0 le prédicteur n'a pas d'imapct sur le nombre d'action 
+H1: β1≠0., le predicteur a un impact sur le nombre d'action
+
+```{r}
+summary(regression)
+```
+On remarque que la p-value est <2.2e-16 donc la p-value <5% donc :
+- rejet de HO au risque alpha 0.05
+- on accepte H1.
+Donc on accepte H1: β1≠0. Le nombre de j'adore a donc un impacte sur le nombre de partage d'un poste sur Facebook. 
+
+4. Quelle est la valeur du coefficient de détermination R2 ? Interprétez ce résultat. Ce modèle est-il adapté pour prédire le nombre d'actions ?
+```{r}
+summary(regression)
+```
+
+Le coefficieint de détemrinaiton s'interprete comme la proportion de variabilité de Y donc du nombre de partage num_shares expliqué par le modèle. 
+Dans les resultats il correspond à Multiple R-squared : 0.6724.
+La valeur du coefficient de détermination R2 est 0.6724. Cela signifie que le modèle explique 67,24 % de la variabilité des données. Ce modèle est donc adapté pour prédire le nombre d'actions.
+
+
+Sélection de fonctionnalités pour la régression linéaire multiple
+
+Vous allez maintenant ajuster plusieurs modèles de régression linéaire afin de prédire la variable cible num_shares en fonction de deux ou plusieurs autres prédicteurs ou caractéristiques.
+Dans certaines situations pratiques, il convient de ne sélectionner qu'un sous-ensemble de prédicteurs au lieu de considérer toutes les variables disponibles, car certaines variables peuvent n'avoir aucune ou peu de signification statistique pour prédire la cible. La meilleure méthode de sélection de sous-ensemble consiste à ajuster une régression des moindres carrés distincte pour chaque combinaison possible des caractéristiques disponibles. Dans R, la fonction regsubsets() de la bibliothèque leaps effectue la meilleure sélection de sous-ensembles en identifiant le meilleur modèle contenant un nombre donné de prédicteurs, où meilleur signifie celui qui minimise la RSS (somme résiduelle des carrés). 
+
+1. [question notée] Utilisez la méthode de sélection du meilleur sous-ensemble pour sélectionner le meilleur modèle pour un nombre possible d'entités allant de 1 à 6. Tracez la courbe R ̄2 en fonction du nombre d'entités. Ensuite, sélectionnez le meilleur modèle. C'est-à-dire le modèle pour lequel le coefficient de détermination ajusté R ̄2 est le plus élevé.
+```{r}
+library(leaps)
+```
+
+```{r}
+data%>%
+  select(num_shares, num_comments, num_likes, num_loves, num_hahas, num_wows, num_sads, num_angrys) -> da
+models <- regsubsets(num_shares~., data=da)
+summary(models)
+```
+
+Visualisation R2 : 
+```{r}
+mod <-summary(models)
+mod$rsq #visualisation des r2 
+adj= which.max(mod$adjr2)
+plot(mod$rsq, xlab = "Nombre de variables", ylab = "R2", type = "l", col= "blue")
+title("Courbe de R2 en fonciton du nombre de variables")
+points(adj, mod$adjr2[adj], col ="red", cex = 2, pch = 20)
+```
+La statistique passe de 67% lorsqu'une seule variable est incluse dans le modèle à 74% lorsque 6 variables sont incluse. Le R2 augmente à mesure que le nombre de variable incluse augmente. 
+
+On se rend compte que la R2 augmente dès qu'on intègre une seconde variable dans le modèle. Le point rouge représente le nombre de varibale pour le meilleur modèle. 
+
+Choix du modèle optimale : 
+```{r}
+which.max(mod$adjr2) # model avec le meilleur R2 ajusté
+```
+
+Visualisation selon R2 ajusté : 
+```{r}
+plot(models, scale="adjr2")
+```
+
+Visualisation selon R2: 
+```{r}
+plot(models, scale="r2")
+```
+
+  
+2. [question graduée] Combien de fonctionnalités avez-vous conservées ? Lesquels?
+
+```{r}
+coef(models, 7)
+```
+
+On choisit les variables avec les plus haut coeff donc : 
+num_loves
+num_wows
+
+```{r}
+regr = lm(num_shares~ num_loves + num_comments+ num_hahas +num_wows +num_sads, data=data) #on definit la régression linéaire
+summary(regr) # on affiche les résultats et le coefficient, les significativé et le R2
+```
+
+
+3. [question graduée] Pourquoi est-il plus approprié d'utiliser le coefficient de détermination ajusté R ̄2 au lieu du coefficient de détermination R2 lorsqu'on compare deux modèles avec des nombres différents de prédicteurs ?
+
+Le coefficient de détermination ajusté R2 est plus approprié à utiliser lorsqu'on compare deux modèles avec des nombres différents de prédicteurs car il tient compte du nombre de prédicteurs dans le modèle. Le coefficient de détermination R2 ne tient pas compte du nombre de prédicteurs et peut donc biaisé les résultats de variabilité des données. 
+
+4. [question graduée] Pour le modèle sélectionné, quelles sont les valeurs des coefficients estimés? Interprétez-les. Quelle est la valeur du coefficient de détermination R2 ? Interprétez cette valeur.
+
+```{r}
+coef(regr)
+```
+Les différents coefficients estimés sont les suivant par exemple pour le nombre de commentaire le coefficient est de 0.04 celui du nombre des hahas est de -1.59. 
+
+```{r}
+summary(regr)
+```
+Le R2  est de 0.7373
+
+5. [Question notée] Pour le modèle sélectionné, effectuez le test d'hypothèse de pente nulle pour tous les coefficients sauf β0 et concluez.
+
